@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        NODE_MODULES = "${WORKSPACE}/node_modules"
+    }
+
     stages {
 
         stage('Build') {
@@ -8,7 +12,7 @@ pipeline {
                 docker {
                     image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'  // run container as root to fix npm permissions
+                    args '-u root:root'
                 }
             }
             steps {
@@ -24,7 +28,7 @@ pipeline {
                 docker {
                     image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'  // run container as root
+                    args '-u root:root'
                 }
             }
             steps {
@@ -38,24 +42,25 @@ pipeline {
         stage('E2E') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.42.1-jammy'
+                    image 'mcr.microsoft.com/playwright:v1.42.1-focal'  // smaller Chromium-only image
                     reuseNode true
-                    args '-u root:root'  // ensure full permissions
+                    args '-u root:root'
                 }
             }
             steps {
                 sh '''
-                    # Install dependencies including local serve
-                    npm ci
+                    # Reuse node_modules from Build stage
+                    export NODE_PATH=${NODE_MODULES}
                     npm install serve
 
-                    # Start the React build folder in the background
+                    # Serve the build folder in the background
                     node_modules/.bin/serve -s build &
 
-                    sleep 3  # give the server time to start
+                    sleep 3  # wait for server to start
 
-                    # Run Playwright E2E tests
-                    npx playwright test
+                    # Run Playwright E2E tests (Chromium only)
+                    npx playwright install chromium --with-deps
+                    npx playwright test --project=chromium
                 '''
             }
         }
@@ -63,7 +68,7 @@ pipeline {
 
     post {
         always {
-            // Publish JUnit test results (works if Jest or Playwright uses JUnit reporter)
+            // Publish JUnit results
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
         }
     }
