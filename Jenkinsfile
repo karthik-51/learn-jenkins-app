@@ -164,8 +164,7 @@ pipeline {
                 keepAll: true,
                 reportDir: 'playwright-report',
                 reportFiles: 'index.html',
-                reportName: 'Playwright HTML Report',
-                useWrapperFileDirectly: true
+                reportName: 'Playwright HTML Report'
             ])
         }
     }
