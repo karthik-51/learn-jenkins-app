@@ -34,7 +34,8 @@ pipeline {
                     mkdir -p "$WORKSPACE/.npm"
                     export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
                     npm ci --cache "$WORKSPACE/.npm" || true
-                    npm test
+                    # Ensure tests run in CI mode so junit reporter writes output
+                    CI=true npm test
                 '''
             }
         }
@@ -60,6 +61,8 @@ pipeline {
                     sleep 10  # give server time to start
 
                     npx playwright test --reporter=html
+                    # list the generated report so Jenkins can archive it and for debugging
+                    ls -la playwright-report || true
                 '''
             }
         }
@@ -67,10 +70,19 @@ pipeline {
 
     post {
         always {
-            // Publish test results
+            // Publish test results (Jest -> junit)
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
-                // Publish Playwright HTML report
-                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
+            // Publish Playwright HTML report
+            publishHTML([
+                allowMissing: false,
+                alwaysLinkToLastBuild: true,
+                keepAll: true,
+                reportDir: 'playwright-report',
+                reportFiles: 'index.html',
+                reportName: 'Playwright HTML Report',
+                reportTitles: '',
+                useWrapperFileDirectly: true
+            ])
         }
     }
 }
