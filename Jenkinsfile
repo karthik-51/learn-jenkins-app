@@ -1,8 +1,9 @@
+
 // pipeline {
 //     agent any
+
 //     stages {
-       
-//         }
+
 //         stage('Build') {
 //             agent {
 //                 docker {
@@ -12,15 +13,12 @@
 //             }
 //             steps {
 //                 sh '''
-//                     ls -la
-//                     node --version
-//                     npm --version
 //                     npm ci
 //                     npm run build
-//                     ls -ltr
 //                 '''
 //             }
 //         }
+
 //         stage('Test') {
 //             agent {
 //                 docker {
@@ -30,45 +28,37 @@
 //             }
 //             steps {
 //                 sh '''
-//                     test -f build/index.html
+//                     mkdir -p test-results
 //                     npm test
 //                 '''
 //             }
 //         }
+
 //         stage('E2E') {
 //             agent {
 //                 docker {
 //                     image 'node:18-alpine'
 //                     reuseNode true
-//                     args '-u root:root'
 //                 }
 //             }
 //             steps {
 //                 sh '''
-//                     # Install system dependencies for browser
 //                     apk add --no-cache libstdc++ libx11 libxrandr libxinerama libxi libxext libxcursor
                     
-//                     test -f build/index.html
-//                     npm install -g serve
-//                     serve -s build &
-//                     sleep 2
+//                     npm install serve
+//                     node_modules/.bin/serve -s build &
+//                     sleep 3
                     
-//                     # Install Playwright with browser dependencies
 //                     npx playwright install --with-deps chromium
-                    
-//                     # Run tests (junit reporter is configured in playwright.config.js)
 //                     npx playwright test
 //                 '''
 //             }
 //         }
 //     }
+
 //     post {
 //         always {
 //             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
-//             sh '''
-//                 docker system prune -af --volumes || true
-//                 rm -rf node_modules .npm .npm-cache || true
-//             '''
 //         }
 //     }
 // }
@@ -82,9 +72,8 @@ pipeline {
         stage('Build') {
             agent {
                 docker {
-                    image 'node:18-alpine'
+                    image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'
                 }
             }
             steps {
@@ -98,9 +87,8 @@ pipeline {
         stage('Test') {
             agent {
                 docker {
-                    image 'node:18-alpine'
+                    image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'
                 }
             }
             steps {
@@ -114,20 +102,21 @@ pipeline {
         stage('E2E') {
             agent {
                 docker {
-                    image 'node:18-alpine'
+                    image 'mcr.microsoft.com/playwright:v1.42.1-jammy'
                     reuseNode true
-                    args '-u root:root'
                 }
             }
             steps {
                 sh '''
-                    apk add --no-cache libstdc++ libx11 libxrandr libxinerama libxi libxext libxcursor
-                    
-                    npm install -g serve
-                    serve -s build &
-                    sleep 3
-                    
-                    npx playwright install --with-deps chromium
+                    # Install dependencies including local serve
+                    npm ci
+                    npm install serve
+
+                    # Start the React build folder in the background
+                    node_modules/.bin/serve -s build &
+                    sleep 3  # give the server time to start
+
+                    # Run Playwright E2E tests
                     npx playwright test
                 '''
             }
@@ -136,6 +125,7 @@ pipeline {
 
     post {
         always {
+            # Publish JUnit test results (works if Jest or Playwright uses JUnit reporter)
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
         }
     }
