@@ -36,16 +36,18 @@ pipeline {
         stage('E2E') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.56.1-jammy'
+                    image 'node:18-alpine'
                     reuseNode true
                 }
             }
             steps {
                 sh '''
-                 npm install -g serve
-                 serve -s build &
-                 sleep 2
-                 npx playwright test
+                    test -f build/index.html
+                    npm install -g serve
+                    serve -s build &
+                    sleep 2
+                    npx playwright install
+                    npx playwright test
                 '''
             }
         }
@@ -53,6 +55,10 @@ pipeline {
     post {
         always {
             junit 'test-results/junit.xml'
+            sh '''
+                docker system prune -af --volumes || true
+                rm -rf node_modules .npm .npm-cache || true
+            '''
         }
     }
 }
