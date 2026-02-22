@@ -5,9 +5,9 @@ pipeline {
         stage('Force Cleanup Disk') {
     steps {
         sh '''
-            sudo docker system prune -af || true
-            sudo docker volume prune -f || true
-            sudo rm -rf /var/lib/jenkins/workspace/* || true
+             docker system prune -af || true
+             docker volume prune -f || true
+             rm -rf /var/lib/jenkins/workspace/* || true
         '''
     }
 }
