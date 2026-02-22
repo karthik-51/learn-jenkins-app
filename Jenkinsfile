@@ -12,8 +12,6 @@ pipeline {
             }
             steps {
                 sh '''
-                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
-                    mkdir -p "$NPM_CONFIG_CACHE"
                     npm ci
                     npm run build
                 '''
@@ -30,28 +28,24 @@ pipeline {
             }
             steps {
                 sh '''
-                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
-                    mkdir -p "$NPM_CONFIG_CACHE" test-results
+                    mkdir -p  test-results
                     npm test
                 '''
             }
         }
 
         stage('E2E') {
-            when {
-                expression { return env.RUN_E2E == 'true' }
-            }
+           
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:latest'
+                    image 'mcr.microsoft.com/playwright:v1.42.1-jammy'
                     reuseNode true
                   
                 }
             }
             steps {
                 sh '''
-                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
-                    mkdir -p "$NPM_CONFIG_CACHE"
+                    
                     npm install serve
 
                     node_modules/.bin/serve -s build &
