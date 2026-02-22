@@ -65,17 +65,6 @@ pipeline {
             // Publish test results
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
 
-            // Cleanup node_modules
-            sh 'rm -rf node_modules'
-
-            // Remove all stopped Docker containers
-            sh 'docker container prune -f'
-
-            // Remove unused Docker images to free space
-            sh 'docker image prune -af'
-
-            // Optional: remove dangling volumes
-            sh 'docker volume prune -f'
         }
     }
 }
