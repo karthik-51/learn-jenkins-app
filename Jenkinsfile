@@ -63,7 +63,6 @@
 //     }
 // }
 
-
 pipeline {
     agent any
 
@@ -125,7 +124,7 @@ pipeline {
 
     post {
         always {
-            # Publish JUnit test results (works if Jest or Playwright uses JUnit reporter)
+            // Publish JUnit test results
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
         }
     }
