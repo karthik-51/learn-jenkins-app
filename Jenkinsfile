@@ -38,7 +38,7 @@ pipeline {
         stage('E2E') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.42.1-focal-chromium' // Chromium-only image
+                  image 'mcr.microsoft.com/playwright:v1.42.1-focal' // Chromium-only image
                     reuseNode true
                     args '-u root:root'
                 }
