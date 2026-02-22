@@ -2,7 +2,15 @@ pipeline {
     agent any
 
     stages {
-
+        stage('Force Cleanup Disk') {
+    steps {
+        sh '''
+            sudo docker system prune -af || true
+            sudo docker volume prune -f || true
+            sudo rm -rf /var/lib/jenkins/workspace/* || true
+        '''
+    }
+}
         stage('Build') {
             agent {
                 docker {
