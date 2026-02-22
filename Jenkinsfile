@@ -59,7 +59,7 @@ pipeline {
 
                     sleep 10  # give server time to start
 
-                    npx playwright test
+                    npx playwright test --reporter=html
                 '''
             }
         }
@@ -69,7 +69,8 @@ pipeline {
         always {
             // Publish test results
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
-
+                // Publish Playwright HTML report
+                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, icon: '', keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
         }
     }
 }
