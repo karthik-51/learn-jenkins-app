@@ -12,7 +12,9 @@ pipeline {
             }
             steps {
                 sh '''
-                    npm ci
+                    mkdir -p "$WORKSPACE/.npm"
+                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
+                    npm ci --cache "$WORKSPACE/.npm"
                     npm run build
                 '''
             }
@@ -29,6 +31,9 @@ pipeline {
             steps {
                 sh '''
                     mkdir -p  test-results
+                    mkdir -p "$WORKSPACE/.npm"
+                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
+                    npm ci --cache "$WORKSPACE/.npm" || true
                     npm test
                 '''
             }
@@ -45,8 +50,10 @@ pipeline {
             }
             steps {
                 sh '''
-                    
-                    npm install serve
+                    mkdir -p "$WORKSPACE/.npm"
+                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
+
+                    npm install --cache "$WORKSPACE/.npm" serve
 
                     node_modules/.bin/serve -s build &
 
