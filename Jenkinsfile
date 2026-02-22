@@ -2,21 +2,14 @@ pipeline {
     agent any
 
     stages {
-        stage('Force Cleanup Disk') {
-    steps {
-        sh '''
-             docker system prune -af || true
-             docker volume prune -f || true
-             rm -rf /var/lib/jenkins/workspace/* || true
-        '''
-    }
+       
 }
         stage('Build') {
             agent {
                 docker {
                     image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'  // run container as root
+                    
                 }
             }
             steps {
@@ -32,7 +25,7 @@ pipeline {
                 docker {
                     image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'
+                    
                 }
             }
             steps {
@@ -46,23 +39,21 @@ pipeline {
         stage('E2E') {
             agent {
                 docker {
-                  image 'mcr.microsoft.com/playwright:v1.42.1-focal' // Chromium-only image
+                  image 'mcr.microsoft.com/playwright:v1.39.0-jamm'
                     reuseNode true
-                    args '-u root:root'
+                  
                 }
             }
             steps {
                 sh '''
-                    npm ci
+                    
                     npm install serve
 
-                    # Start the React build folder in the background
                     node_modules/.bin/serve -s build &
 
-                    sleep 3  # give server time to start
+                    sleep 10  # give server time to start
 
-                    # Run Playwright E2E tests using Chromium
-                    npx playwright test --project=chromium
+                    npx playwright test 
                 '''
             }
         }
