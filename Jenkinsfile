@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        NODE_MODULES = "${WORKSPACE}/node_modules"
-    }
-
     stages {
 
         stage('Build') {
@@ -12,7 +8,7 @@ pipeline {
                 docker {
                     image 'node:18-bullseye'
                     reuseNode true
-                    args '-u root:root'
+                    args '-u root:root'  // run container as root
                 }
             }
             steps {
@@ -42,24 +38,22 @@ pipeline {
         stage('E2E') {
             agent {
                 docker {
-                    image 'mcr.microsoft.com/playwright:v1.42.1-focal'  // smaller Chromium-only image
+                    image 'mcr.microsoft.com/playwright:v1.42.1-focal-chromium' // Chromium-only image
                     reuseNode true
                     args '-u root:root'
                 }
             }
             steps {
                 sh '''
-                    # Reuse node_modules from Build stage
-                    export NODE_PATH=${NODE_MODULES}
+                    npm ci
                     npm install serve
 
-                    # Serve the build folder in the background
+                    # Start the React build folder in the background
                     node_modules/.bin/serve -s build &
 
-                    sleep 3  # wait for server to start
+                    sleep 3  # give server time to start
 
-                    # Run Playwright E2E tests (Chromium only)
-                    npx playwright install chromium --with-deps
+                    # Run Playwright E2E tests using Chromium
                     npx playwright test --project=chromium
                 '''
             }
@@ -68,8 +62,20 @@ pipeline {
 
     post {
         always {
-            // Publish JUnit results
+            // Publish test results
             junit testResults: 'test-results/junit.xml', allowEmptyResults: true
+
+            // Cleanup node_modules
+            sh 'rm -rf node_modules'
+
+            // Remove all stopped Docker containers
+            sh 'docker container prune -f'
+
+            // Remove unused Docker images to free space
+            sh 'docker image prune -af'
+
+            // Optional: remove dangling volumes
+            sh 'docker volume prune -f'
         }
     }
 }
