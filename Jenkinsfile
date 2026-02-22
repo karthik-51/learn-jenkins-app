@@ -1,6 +1,13 @@
 pipeline {
     agent any
     stages {
+        stage('Cleanup') {
+            steps {
+                sh '''
+                    rm -rf test-results playwright-report .npm .npm-cache || true
+                '''
+            }
+        }
         stage('Build') {
             agent {
                 docker {
