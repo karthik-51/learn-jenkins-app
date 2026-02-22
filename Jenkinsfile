@@ -38,6 +38,9 @@ pipeline {
         }
 
         stage('E2E') {
+            when {
+                expression { return env.RUN_E2E == 'true' }
+            }
             agent {
                 docker {
                     image 'mcr.microsoft.com/playwright:latest'
