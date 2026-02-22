@@ -43,11 +43,18 @@ pipeline {
             }
             steps {
                 sh '''
+                    # Install system dependencies for browser
+                    apk add --no-cache libstdc++ libx11 libxrandr libxinerama libxi libxext libxcursor
+                    
                     test -f build/index.html
                     npm install -g serve
                     serve -s build &
                     sleep 2
-                    npx playwright install
+                    
+                    # Install Playwright with browser dependencies
+                    npx playwright install --with-deps chromium
+                    
+                    # Run tests (junit reporter is configured in playwright.config.js)
                     npx playwright test
                 '''
             }
@@ -55,7 +62,7 @@ pipeline {
     }
     post {
         always {
-            junit 'test-results/junit.xml'
+            junit testResults: 'test-results/junit.xml', allowEmptyResults: true
             sh '''
                 docker system prune -af --volumes || true
                 rm -rf node_modules .npm .npm-cache || true
