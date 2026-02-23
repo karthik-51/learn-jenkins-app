@@ -108,55 +108,62 @@ pipeline {
             }
         }
 
-        stage('Test') {
-            agent {
-                docker {
-                    image 'node:18-bullseye'
-                    reuseNode true
+        stage('Test & E2E') {
+            parallel {
+                stage('Test') {
+                    agent {
+                        docker {
+                            image 'node:18-bullseye'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        sh '''
+                            mkdir -p test-results
+                            mkdir -p "$WORKSPACE/.npm"
+                            export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
+                            npm ci --cache "$WORKSPACE/.npm" || true
+                            CI=true npm test
+                        '''
+                    }
                 }
-            }
-            steps {
-                sh '''
-                    mkdir -p test-results
-                    mkdir -p "$WORKSPACE/.npm"
-                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
-                    npm ci --cache "$WORKSPACE/.npm" || true
-                    CI=true npm test
-                '''
-            }
-        }
 
-        stage('E2E') {
-            agent {
-                docker {
-                    image 'mcr.microsoft.com/playwright:v1.58.2-jammy'
-                    reuseNode true
+                stage('E2E') {
+                    agent {
+                        docker {
+                            image 'mcr.microsoft.com/playwright:v1.58.2-jammy'
+                            reuseNode true
+                        }
+                    }
+                    steps {
+                        sh '''
+                            mkdir -p "$WORKSPACE/.npm"
+                            export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
+
+                            npm install --cache "$WORKSPACE/.npm" serve
+
+                            # Start server in background
+                            node_modules/.bin/serve -s build &
+
+                            sleep 10  # give server time to start
+
+                            # Run Playwright tests with HTML reporter and explicit output folder
+                            npx playwright test --reporter=html --output=playwright-report
+
+                            # List report for debugging
+                            ls -la playwright-report || true
+                        '''
+                    }
                 }
-            }
-            steps {
-                sh '''
-                    mkdir -p "$WORKSPACE/.npm"
-                    export NPM_CONFIG_CACHE="$WORKSPACE/.npm"
-
-                    npm install --cache "$WORKSPACE/.npm" serve
-
-                    # Start server in background
-                    node_modules/.bin/serve -s build &
-
-                    sleep 10  # give server time to start
-
-                    # Run Playwright tests with HTML reporter and explicit output folder
-                    npx playwright test --reporter=html --output=playwright-report
-
-                    # List report for debugging
-                    ls -la playwright-report || true
-                '''
             }
         }
     }
 
     post {
         always {
+            // Publish test results (Jest -> junit)
+            junit testResults: 'test-results/junit.xml', allowEmptyResults: true
+
             // Publish only Playwright HTML report
             publishHTML([
                 allowMissing: false,
